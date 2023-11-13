@@ -5,6 +5,20 @@
 #include <iostream>
 #include <chrono>
 
+#define SHADERLOG(shader, ivENUM) \
+{ \
+	int status; \
+	glGetShaderiv(shader, ivENUM, &status); \
+	char log[512]; \
+	glGetShaderInfoLog(shader, 512, NULL, log); \
+	std::cout << log << std::endl; \
+	if (status != GL_TRUE) \
+	{ \
+		std::cout << "Shader compilation failed" << std::endl; \
+		return -4; \
+	} \
+}
+
 
 const char* vertexShaderSource = R"glsl(
 	#version 150 core
@@ -71,10 +85,22 @@ int main()
 	//	-0.5f, -0.5f  // Left
 	//};
 
+	//float vertices[] = {
+	//	 0.0f,  0.5f, 1.0f, 0.0f, 0.0f, // Top - Red
+	//	 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Right - Green
+	//	-0.5f, -0.5f, 0.0f, 0.0f, 1.0f  // Left - Blue
+	//};
+
 	float vertices[] = {
-		 0.0f,  0.5f, 1.0f, 0.0f, 0.0f, // Top - Red
-		 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Right - Green
-		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f  // Left - Blue
+		-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top Left - Red
+		 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top Right - Green
+		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom Right - Blue
+		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f  // Bottom Left - Yellow
+	};
+
+	unsigned int elements[] = {
+		0, 1, 2,
+		2, 3, 0
 	};
 
 	unsigned int vbo;
@@ -82,33 +108,20 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
+	unsigned int ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
-	int vStatus;
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vStatus);
-	char vShaderLog[512];
-	glGetShaderInfoLog(vertexShader, 512, NULL, vShaderLog);
-	std::cout << vShaderLog << std::endl;
-	if (vStatus != GL_TRUE)
-	{
-		std::cout << "Vertex shader compilation failed" << std::endl;
-		return -4;
-	}
+	SHADERLOG(vertexShader, GL_COMPILE_STATUS);
 
 	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
-	int fStatus;
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fStatus);
-	char fShaderLog[512];
-	glGetShaderInfoLog(fragmentShader, 512, NULL, fShaderLog);
-	std::cout << fShaderLog << std::endl;
-	if (fStatus != GL_TRUE)
-	{
-		std::cout << "Fragment shader compilation failed" << std::endl;
-		return -5;
-	}
+	SHADERLOG(fragmentShader, GL_COMPILE_STATUS);
 
 	unsigned int shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
@@ -122,7 +135,7 @@ int main()
 	if (linkStatus != GL_TRUE)
 	{
 		std::cout << "Shader program linking failed" << std::endl;
-		return -6;
+		return -5;
 	}
 	glUseProgram(shaderProgram);
 
@@ -146,7 +159,8 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glBindVertexArray(vao);
 		//glUniform3f(triangleColorLocation, (sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -166,82 +180,3 @@ int main()
 
 	return 0;
 }
-
-
-#if 0
-
-int main()
-{
-	GLFWwindow* window;
-
-	if (!glfwInit())
-		return -1;
-
-	window = glfwCreateWindow(1280, 960, "Window", NULL, NULL);
-	if (!window)
-	{
-		glfwTerminate();
-		return -2;
-	}
-
-	glfwMakeContextCurrent(window);
-
-	if (glewInit() != GLEW_OK)
-		return -3;
-
-	float vertices[] = {
-		-0.5f,  0.5f, 0.0f, // Top Left
-		 0.5f,  0.5f, 0.0f, // Top Right
-		 0.5f, -0.5f, 0.0f, // Bottom Right
-		-0.5f, -0.5f, 0.0f  // Bottom Left
-	};
-
-	float indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};
-
-	unsigned int vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	unsigned int vbo;
-	glGenBuffers(1, &vbo); // Generate 1 buffer
-	glBindBuffer(GL_ARRAY_BUFFER, vbo); // Bind the buffer to the array buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // Copy the vertices to the buffer
-
-	unsigned int ebo;
-	glGenBuffers(1, &ebo); // Generate 1 buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo); // Bind the buffer to the element array buffer
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); // Copy the indices to the buffer
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // Set the vertex attribute pointer
-	glEnableVertexAttribArray(0); // Enable the vertex attribute pointer
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the buffer
-	glBindVertexArray(0); // Unbind the vertex array
-
-	while (!glfwWindowShouldClose(window))
-	{
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glClearColor(0.0f, 168.0f, 150.0f, 1.0f);
-
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
-
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-
-		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
-			glfwSetWindowShouldClose(window, GLFW_TRUE);
-	}
-
-	glfwTerminate();
-
-	return 0;
-}
-
-#endif
