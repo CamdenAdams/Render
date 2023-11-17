@@ -1,6 +1,7 @@
-//#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <SOIL.h>
 
 #include <iostream>
 #include <chrono>
@@ -25,13 +26,16 @@ const char* vertexShaderSource = R"glsl(
 		
 	in vec2 position;	
 	in vec3 color;
+	in vec2 texcoord;
 
 	out vec3 Color;
+	out vec2 Texcoord;
 		
 	void main()
 	{
-		Color = color;
 		gl_Position = vec4(position, 0.0, 1.0);
+		Color = color;
+		Texcoord = texcoord;
 	}
 )glsl";
 
@@ -40,12 +44,15 @@ const char* fragmentShaderSource = R"glsl(
 
 	// uniform vec3 triangleColor;
 	in vec3 Color;		
+	in vec2 Texcoord;
 
 	out vec4 outColor;
+	
+	uniform sampler2D tex;
 		
 	void main()
 	{
-		outColor = vec4(Color, 1.0);
+		outColor = texture(tex, Texcoord) * vec4(Color, 1.0);
 	}
 )glsl";
 
@@ -69,33 +76,16 @@ int main()
 	if (glewInit() != GLEW_OK)
 		return -3;
 
-	//float vertices[] = {
-	//	 0.0f,  0.5f, 0.0f, // Top
-	//	 0.5f, -0.5f, 0.0f, // Right
-	//	-0.5f, -0.5f, 0.0f // Left
-	//};
-
 	unsigned int vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	//float vertices[] = {
-	//	 0.0f,  0.5f, // Top
-	//	 0.5f, -0.5f, // Right
-	//	-0.5f, -0.5f  // Left
-	//};
-
-	//float vertices[] = {
-	//	 0.0f,  0.5f, 1.0f, 0.0f, 0.0f, // Top - Red
-	//	 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Right - Green
-	//	-0.5f, -0.5f, 0.0f, 0.0f, 1.0f  // Left - Blue
-	//};
-
 	float vertices[] = {
-		-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top Left - Red
-		 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top Right - Green
-		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom Right - Blue
-		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f  // Bottom Left - Yellow
+	//	Position	  Color			    TexCoords
+		-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top Left - Red
+		 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top Right - Green
+		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom Right - Blue
+		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom Left - Yellow
 	};
 
 	unsigned int elements[] = {
@@ -139,13 +129,31 @@ int main()
 	}
 	glUseProgram(shaderProgram);
 
+	unsigned int tex;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+	int width, height;
+	unsigned char* image = SOIL_load_image("Source/sample.png", &width, &height, 0, SOIL_LOAD_RGBA);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	SOIL_free_image_data(image);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 	// This variable corresponds with the gl_position variable in the vertex shader
 	int positionAttribute = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(positionAttribute);
-	glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
 	int colorAttribute = glGetAttribLocation(shaderProgram, "color");
 	glEnableVertexAttribArray(colorAttribute);
-	glVertexAttribPointer(colorAttribute, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+	glVertexAttribPointer(colorAttribute, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+	int texcoordAttribute = glGetAttribLocation(shaderProgram, "texcoord");
+	glEnableVertexAttribArray(texcoordAttribute);
+	glVertexAttribPointer(texcoordAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+
 
 	int triangleColorLocation = glGetUniformLocation(shaderProgram, "triangleColor");
 	auto tStart = std::chrono::high_resolution_clock::now();
