@@ -48,17 +48,21 @@ const char* fragmentShaderSource = R"glsl(
 
 	out vec4 outColor;
 	
-	uniform sampler2D tex;
+	uniform sampler2D texKitten;
+	uniform sampler2D texPuppy;
+	uniform float time;
 		
 	void main()
 	{
-		outColor = texture(tex, Texcoord) * vec4(Color, 1.0);
+		float factor = (sin(time * 3.0) + 1.0) / 2.0;
+		outColor = mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), factor);
 	}
 )glsl";
 
 
 int main()
 {
+	auto t_start = std::chrono::high_resolution_clock::now();
 	GLFWwindow* window;
 
 	if (!glfwInit())
@@ -129,20 +133,6 @@ int main()
 	}
 	glUseProgram(shaderProgram);
 
-	unsigned int tex;
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
-
-	int width, height;
-	unsigned char* image = SOIL_load_image("Source/sample.png", &width, &height, 0, SOIL_LOAD_RGBA);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	SOIL_free_image_data(image);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 	// This variable corresponds with the gl_position variable in the vertex shader
 	int positionAttribute = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(positionAttribute);
@@ -154,20 +144,47 @@ int main()
 	glEnableVertexAttribArray(texcoordAttribute);
 	glVertexAttribPointer(texcoordAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
 
+	GLuint textures[2];
+	glGenTextures(2, textures);
 
-	int triangleColorLocation = glGetUniformLocation(shaderProgram, "triangleColor");
-	auto tStart = std::chrono::high_resolution_clock::now();
+	int width, height;
+	unsigned char* image;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	image = SOIL_load_image("Source/sample.png", &width, &height, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	SOIL_free_image_data(image);
+	glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	image = SOIL_load_image("Source/sample2.png", &width, &height, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	SOIL_free_image_data(image);
+	glUniform1i(glGetUniformLocation(shaderProgram, "texPuppy"), 1);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	GLuint timeUniform = glGetUniformLocation(shaderProgram, "time");
 
 	while (!glfwWindowShouldClose(window))
 	{
-		auto tNow = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration_cast<std::chrono::duration<float>>(tNow - tStart).count();
+		auto t_now = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+		glUniform1f(timeUniform, time);
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glBindVertexArray(vao);
-		//glUniform3f(triangleColorLocation, (sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		glfwSwapBuffers(window);
@@ -178,10 +195,16 @@ int main()
 	}
 
 	// all remaining clean up is done here
+
+	glDeleteTextures(2, textures);
+
 	glDeleteProgram(shaderProgram);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+	
 	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
+
 	glDeleteVertexArrays(1, &vao);
 
 	glfwTerminate();
