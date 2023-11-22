@@ -3,6 +3,10 @@
 #include <GLFW/glfw3.h>
 #include <SOIL.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <chrono>
 
@@ -30,12 +34,14 @@ const char* vertexShaderSource = R"glsl(
 
 	out vec3 Color;
 	out vec2 Texcoord;
+
+	uniform mat4 trans;
 		
 	void main()
 	{
-		gl_Position = vec4(position, 0.0, 1.0);
 		Color = color;
 		Texcoord = texcoord;
+		gl_Position = trans *  vec4(position, 0.0, 1.0);
 	}
 )glsl";
 
@@ -92,6 +98,11 @@ int main()
 		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom Left - Yellow
 	};
 
+	
+
+	/*glm::vec4 result = trans * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	printf("%f, %f, %f", result.x, result.y, result.y);*/
+
 	unsigned int elements[] = {
 		0, 1, 2,
 		2, 3, 0
@@ -143,6 +154,10 @@ int main()
 	int texcoordAttribute = glGetAttribLocation(shaderProgram, "texcoord");
 	glEnableVertexAttribArray(texcoordAttribute);
 	glVertexAttribPointer(texcoordAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+	/*glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::rotate(trans, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));*/
+	GLint uniTrans = glGetUniformLocation(shaderProgram, "trans");
+
 
 	GLuint textures[2];
 	glGenTextures(2, textures);
@@ -185,6 +200,9 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glBindVertexArray(vao);
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::rotate(trans, time * glm::radians(180.f), glm::vec3(0.f, 0.0f, 1.0f));
+		glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(trans));
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		glfwSwapBuffers(window);
