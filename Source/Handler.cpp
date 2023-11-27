@@ -28,7 +28,7 @@
 const char* vertexShaderSource = R"glsl(
 	#version 150 core
 		
-	in vec2 position;	
+	in vec3 position;	
 	in vec3 color;
 	in vec2 texcoord;
 
@@ -38,19 +38,18 @@ const char* vertexShaderSource = R"glsl(
 	uniform mat4 model;
 	uniform mat4 view;
 	uniform mat4 proj;
+	uniform vec3 overrideColor;
 		
 	void main()
 	{
-		Color = color;
+		Color = overrideColor * color;
 		Texcoord = texcoord;
-		gl_Position = proj * view * model *  vec4(position, 0.0, 1.0);
+		gl_Position = proj * view * model *  vec4(position, 1.0);
 	}
 )glsl";
 
 const char* fragmentShaderSource = R"glsl(
 	#version 150 core
-
-	// uniform vec3 triangleColor;
 	in vec3 Color;		
 	in vec2 Texcoord;
 
@@ -62,8 +61,9 @@ const char* fragmentShaderSource = R"glsl(
 		
 	void main()
 	{
-		float factor = (sin(time * 3.0) + 1.0) / 2.0;
-		outColor = mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), factor);
+		// float factor = (sin(time * 3.0) + 1.0) / 2.0;
+		vec4 texColor = mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), 0.0);
+		outColor = vec4(Color, 1.0) * texColor;
 	}
 )glsl";
 
@@ -92,22 +92,64 @@ int main()
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	float vertices[] = {
-	//	Position	  Color			    TexCoords
-		-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top Left - Red
-		 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top Right - Green
-		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom Right - Blue
-		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom Left - Yellow
-	};
+	//float vertices[] = {
+	////	Position	  Color			    TexCoords
+	////  X		Y	  Z		R	  G		B	  U		V
+	//	-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top Left - Red
+	//	 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top Right - Green
+	//	 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom Right - Blue
+	//	-0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom Left - Yellow
+	//};
 
-	
+	GLfloat vertices[] = {
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
 
-	/*glm::vec4 result = trans * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	printf("%f, %f, %f", result.x, result.y, result.y);*/
+		-0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
 
-	unsigned int elements[] = {
-		0, 1, 2,
-		2, 3, 0
+		-0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+		-1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		 1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		 1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+		 1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+		-1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
 	};
 
 	unsigned int vbo;
@@ -115,11 +157,14 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
-	unsigned int ebo;
+	/*unsigned int ebo;
 	glGenBuffers(1, &ebo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);*/
 
+
+	// Create and compile Vertex and Fragment shader
+	// Link and compile Shader Program
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
@@ -149,26 +194,29 @@ int main()
 	// This variable corresponds with the gl_position variable in the vertex shader
 	int positionAttribute = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(positionAttribute);
-	glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
+	glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+
 	int colorAttribute = glGetAttribLocation(shaderProgram, "color");
 	glEnableVertexAttribArray(colorAttribute);
-	glVertexAttribPointer(colorAttribute, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+	glVertexAttribPointer(colorAttribute, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+
 	int texcoordAttribute = glGetAttribLocation(shaderProgram, "texcoord");
 	glEnableVertexAttribArray(texcoordAttribute);
-	glVertexAttribPointer(texcoordAttribute, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+	glVertexAttribPointer(texcoordAttribute, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
 	/*glm::mat4 trans = glm::mat4(1.0f);
 	trans = glm::rotate(trans, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));*/
 	GLint uniModel = glGetUniformLocation(shaderProgram, "model");
 
 	glm::mat4 view = glm::lookAt(
-		glm::vec3(1.2f, 1.2f, 1.2f),
+		glm::vec3(2.5f, 2.5f, 2.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f)
 	);
 	GLint uniView = glGetUniformLocation(shaderProgram, "view");
 	glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 1.0f, 10.f);
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 1.0f, 10.0f);
 	GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
 	glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
@@ -204,21 +252,58 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	GLuint timeUniform = glGetUniformLocation(shaderProgram, "time");
+	GLint uniColor = glGetUniformLocation(shaderProgram, "overrideColor");
+
+	glEnable(GL_DEPTH_TEST);
 
 	while (!glfwWindowShouldClose(window))
 	{
 		auto t_now = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
-		glUniform1f(timeUniform, time);
+		float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count() * 0.5;
+		//glUniform1f(timeUniform, time);
 
-		glClear(GL_COLOR_BUFFER_BIT);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glBindVertexArray(vao);
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, time * glm::radians(180.f), glm::vec3(0.f, 0.0f, 1.0f));
+		// Clears screen to black
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+		// vao is already bound so this redundant
+		// glBindVertexArray(vao);
+		glm::mat4 model = glm::mat4(1.0f); // does this initialize an identity matrix?
+		model = glm::rotate(model, time * glm::radians(270.0f), glm::vec3(0.f, 0.0f, 1.0f));
+		
 		glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		glEnable(GL_STENCIL_TEST);
+		
+		{
+			// Draw floor
+			glStencilFunc(GL_ALWAYS, 1, 0xFF);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+			glStencilMask(0xFF);
+			glDepthMask(GL_FALSE);
+			glClear(GL_STENCIL_BUFFER_BIT);
+
+			glDrawArrays(GL_TRIANGLES, 36, 6);
+
+			// Draw cube reflection
+			glStencilFunc(GL_EQUAL, 1, 0xFF);
+			glStencilMask(0x00);
+			glDepthMask(GL_TRUE);
+
+			model = glm::scale(
+				glm::translate(model, glm::vec3(0, 0, -1)),
+				glm::vec3(1, 1, -1)
+			);
+			glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
+			glUniform3f(uniColor, 0.3f, 0.3f, 0.3f);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			glUniform3f(uniColor, 1.0f, 1.0f, 1.0f);
+		}
+
+		glDisable(GL_STENCIL_TEST);
+			
+		//glBindVertexArray(0);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
@@ -235,7 +320,6 @@ int main()
 	glDeleteShader(fragmentShader);
 	
 	glDeleteBuffers(1, &vbo);
-	glDeleteBuffers(1, &ebo);
 
 	glDeleteVertexArrays(1, &vao);
 
