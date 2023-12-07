@@ -200,6 +200,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\Handler.cpp" />
+    <ClCompile Include="Source\MainFrameBuffer.cpp" />
+    <ClCompile Include="Source\Shader\VertexShaderStrings.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Source\sample.png" />

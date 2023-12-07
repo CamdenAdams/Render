@@ -1,3 +1,4 @@
+#if 0
 #define GLFW_INCLUDE_NONE
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -67,6 +68,31 @@ const char* fragmentShaderSource = R"glsl(
 	}
 )glsl";
 
+const char* vertexShaderSource2 = R"glsl(
+	#version 150 core
+	in vec3 position;	
+	in vec2 texcoord;
+	out vec2 Texcoord;
+		
+	void main()
+	{
+		Texcoord = texcoord;
+		gl_Position = vec4(position, 0.0, 1.0);
+	}
+)glsl";
+
+const char* fragmentShaderSource2 = R"glsl(
+	#version 150 core
+	in vec2 Texcoord;
+	out vec4 outColor;
+	uniform sampler2D texFramebuffer;
+		
+	void main()
+	{
+		outColor = texture(texFramebuffer, Texcoord);
+	}
+)glsl";
+
 
 int main()
 {
@@ -92,14 +118,33 @@ int main()
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	//float vertices[] = {
-	////	Position	  Color			    TexCoords
-	////  X		Y	  Z		R	  G		B	  U		V
-	//	-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top Left - Red
-	//	 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top Right - Green
-	//	 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom Right - Blue
-	//	-0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom Left - Yellow
-	//};
+	GLuint frameBuffer;
+	glGenFramebuffers(1, &frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+	GLuint texColorBuffer;
+	glGenTextures(1, &texColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, GL_RGB, 1280, 960, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL
+	);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
+
+	GLuint rboDepthStencil;
+	glGenRenderbuffers(1, &rboDepthStencil);
+	glBindRenderbuffer(GL_RENDERBUFFER, rboDepthStencil);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 1280, 960);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		return -4;
+
+
 
 	GLfloat vertices[] = {
 		-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
@@ -256,11 +301,28 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 
+	// set clear color to jade green for new frame buffer
+	// use function glreadpixels to read the color buffer of the new framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	//glClearColor(0.0f, 168.0f / 255.0f, 107.0f / 255.0f, 1.0f);
+	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+	GLubyte* pixels = new GLubyte[1280 * 960 * 3];
+	glReadPixels(0, 0, 1280, 960, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+	// print out the first 10 pixels of the bottom row
+
+	delete[] pixels;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		auto t_now = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count() * 0.5;
 		//glUniform1f(timeUniform, time);
+
+		// bind default framebuffer
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		
 
 		// Clears screen to black
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -320,6 +382,8 @@ int main()
 	glDeleteShader(fragmentShader);
 	
 	glDeleteBuffers(1, &vbo);
+	glDeleteFramebuffers(1, &frameBuffer);
+	glDeleteRenderbuffers(1, &rboDepthStencil);
 
 	glDeleteVertexArrays(1, &vao);
 
@@ -327,3 +391,4 @@ int main()
 
 	return 0;
 }
+#endif
