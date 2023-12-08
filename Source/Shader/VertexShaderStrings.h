@@ -7,7 +7,7 @@ struct ShaderStruct {
 
 	const char* sceneVertexSource = R"glsl(
 			#version 150 core
-			in vec2 position;
+			in vec3 position;
 			in vec3 color;
 			in vec2 texcoord;
 
