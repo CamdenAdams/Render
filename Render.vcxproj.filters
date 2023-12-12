@@ -26,10 +26,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Source\sample.png">
+    <Image Include="Source\Resource\kitten.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="Source\sample2.png">
+    <Image Include="Source\Resource\doggo.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
