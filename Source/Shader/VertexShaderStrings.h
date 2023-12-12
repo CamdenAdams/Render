@@ -23,7 +23,7 @@ struct ShaderStruct {
 			{
 				Color = overrideColor * color;
 				Texcoord = texcoord;
-				gl_Position = vec4(position, 0.0, 1.0);
+				gl_Position = proj * view * model * vec4(position, 1.0);
 			}
 		)glsl";
 
@@ -36,7 +36,7 @@ struct ShaderStruct {
 			uniform sampler2D texPuppy;
 			void main()
 			{
-				outColor = mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), 0.5);
+				outColor = vec4(Color, 1.0) * mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), 0.5);
 			}
 		)glsl";
 
